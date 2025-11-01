@@ -68,7 +68,7 @@ try {
 
                     // Send confirmation message
                     await Um4r719.sendMessage(Um4r719.user.id, { 
-                        text: 'HORLA-POOKIE Session has been successfully generated!\n\nYour session is above.\n\nGoodluck 🎉\n' 
+                        text: 'HORLA-POOKIE Session has been successfully generated!\n\nYour session is above. Dont forget to give us a follow🙏🙏 https://whatsapp.com/channel/0029VbBg3f665yDK7dGyMC3q.\n\nGoodluck 🎉\n' 
                     });
 
                     // Clean up session after use
