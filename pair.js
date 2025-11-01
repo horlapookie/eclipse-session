@@ -100,17 +100,4 @@ try {
     await initiateSession();
 });
 
-// Ensure session cleanup on exit or uncaught exceptions
-process.on('exit', () => {
-    removeFile(dirs);
-    console.log('Session file removed.');
-});
-
-// Catch uncaught errors and handle session cleanup
-process.on('uncaughtException', (err) => {
-    console.error('Uncaught exception:', err);
-    removeFile(dirs);
-    process.exit(1);  // Ensure the process exits with error
-});
-
 export default router;
