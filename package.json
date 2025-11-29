@@ -1,7 +1,7 @@
 {
   "description": "Pk",
   "main": "./index.js",
-  "type": "commonjs",
+  "type": "module",
   "engines" : { 
     "node" : ">=20.0.0"
     },
