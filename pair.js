@@ -37,7 +37,7 @@ router.get('/', async (req, res) => {
 
     // Remove existing session if present
     removeFile(dirs);
-    
+
     // Create fresh directory
     ensureDir(dirs);
     console.log(`Created session directory: ${dirs}`);
@@ -51,15 +51,17 @@ router.get('/', async (req, res) => {
     async function initiateSession() {
         try {
             const { state, saveCreds } = await useMultiFileAuthState(dirs);
-            
+
             const Um4r719 = makeWASocket({
                 printQRInTerminal: false,
                 browser: Browsers.ubuntu('Chrome'),
                 logger: pino({
-                    level: 'silent',
+                    level: 'error',
                 }),
                 auth: state,
                 shouldSyncHistoryMessage: () => false,
+                msgRetryCounterMap: {},
+                msgRetryCounterStartTimestamp: Date.now(),
             });
 
             // Handle credentials update
@@ -84,7 +86,7 @@ router.get('/', async (req, res) => {
                             console.log(`Requesting pairing code for: ${num}`);
                             const code = await Um4r719.requestPairingCode(num);
                             console.log(`Pairing code received: ${code}`);
-                            
+
                             if (!res.headersSent) {
                                 res.send({ code });
                             }
@@ -105,13 +107,13 @@ router.get('/', async (req, res) => {
 
                         try {
                             console.log('Attempting to send session...');
-                            
+
                             // Send notification
-                            await Um4r719.sendMessage(Um4r719.user.id, { 
-                                text: `Generating your session wait a moment` 
+                            await Um4r719.sendMessage(Um4r719.user.id, {
+                                text: `Generating your session wait a moment`
                             });
                             console.log("Sent generation notification");
-                            
+
                             await delay(5000);
 
                             // Read credentials file
@@ -132,8 +134,8 @@ router.get('/', async (req, res) => {
                             await delay(1000);
 
                             // Send confirmation
-                            await Um4r719.sendMessage(Um4r719.user.id, { 
-                                text: 'HORLA-POOKIE Session has been successfully generated!\n\nYour session is above. Dont forget to give us a follow🙏🙏 https://whatsapp.com/channel/0029VbBu7CaLtOjAOyp5kR1i.\n\nGoodluck 🎉\n' 
+                            await Um4r719.sendMessage(Um4r719.user.id, {
+                                text: 'HORLA-POOKIE Session has been successfully generated!\n\nYour session is above. Dont forget to give us a follow🙏🙏 https://whatsapp.com/channel/0029VbBu7CaLtOjAOyp5kR1i.\n\nGoodluck 🎉\n'
                             });
                             console.log("Sent confirmation message");
 
@@ -150,10 +152,11 @@ router.get('/', async (req, res) => {
                             await Um4r719.end();
                         }
                     }
-                } 
+                }
                 else if (connection === 'close') {
                     const statusCode = lastDisconnect?.error?.output?.statusCode;
                     console.log('Connection closed with status:', statusCode);
+                    console.log('Full disconnect info:', JSON.stringify(lastDisconnect, null, 2));
 
                     // 401 = LoggedOut, 428 = Connection error during pairing
                     if (statusCode === 401) {
@@ -162,7 +165,7 @@ router.get('/', async (req, res) => {
                             res.status(401).send({ error: 'Device not authenticated' });
                         }
                         removeFile(dirs);
-                    } 
+                    }
                     else if (!requestSent && statusCode !== 408) {
                         // Retry if we haven't sent the request yet
                         retryCount++;
