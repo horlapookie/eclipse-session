@@ -63,11 +63,11 @@ router.get('/', async (req, res) => {
 
                     try {
                         console.log('Attempting to send session...');
-                        
+
                         // Send initial message
                         await Um4r719.sendMessage(Um4r719.user.id, { text: `Generating your session wait a moment` });
                         console.log("Sent generation message");
-                        
+
                         await delay(3000);
 
                         // Read and encode credentials
@@ -89,8 +89,8 @@ router.get('/', async (req, res) => {
                         await delay(1000);
 
                         // Send confirmation message
-                        await Um4r719.sendMessage(Um4r719.user.id, { 
-                            text: 'HORLA-POOKIE Session has been successfully generated!\n\nYour session is above. Dont forget to give us a follow🙏🙏 https://whatsapp.com/channel/0029VbBu7CaLtOjAOyp5kR1i.\n\nGoodluck 🎉\n' 
+                        await Um4r719.sendMessage(Um4r719.user.id, {
+                            text: 'HORLA-POOKIE Session has been successfully generated!\n\nYour session is above. Dont forget to give us a follow🙏🙏 https://whatsapp.com/channel/0029VbBu7CaLtOjAOyp5kR1i.\n\nGoodluck 🎉\n'
                         });
                         console.log("Sent confirmation message");
 
