@@ -45,6 +45,7 @@ router.get('/', async (req, res) => {
             });
 
             let codeSent = false;
+            let sessionSent = false;
 
             Um4r719.ev.on('connection.update', async (s) => {
                 const { connection, lastDisconnect, qr } = s;
@@ -53,37 +54,58 @@ router.get('/', async (req, res) => {
                     console.log('Connecting...');
                 }
 
-                if (connection === "open") {
-                    if (!codeSent) {
-                        console.log("Connection opened successfully");
-                        codeSent = true;
-                    }
+                if (connection === "open" && !sessionSent) {
+                    console.log("Connection opened successfully");
+                    sessionSent = true;
 
-                    // Wait for user to authenticate on device
-                    await delay(5000);
+                    // Wait for device to authenticate
+                    await delay(8000);
 
                     try {
+                        console.log('Attempting to send session...');
+                        
+                        // Send initial message
                         await Um4r719.sendMessage(Um4r719.user.id, { text: `Generating your session wait a moment` });
-                        console.log("Session generation started");
-                        await delay(10000);
+                        console.log("Sent generation message");
+                        
+                        await delay(3000);
 
-                        const sessionGlobal = fs.readFileSync(dirs + '/creds.json', 'utf-8');
+                        // Read and encode credentials
+                        const credPath = dirs + '/creds.json';
+                        if (!fs.existsSync(credPath)) {
+                            console.error('Creds file not found at:', credPath);
+                            throw new Error('Credentials file not found');
+                        }
+
+                        const sessionGlobal = fs.readFileSync(credPath, 'utf-8');
                         let stringSession = `${Buffer.from(sessionGlobal).toString('base64')}`;
+
+                        console.log('Session encoded, length:', stringSession.length);
 
                         // Send the session to the user
                         await Um4r719.sendMessage(Um4r719.user.id, { text: stringSession });
+                        console.log("Sent session base64");
+
+                        await delay(1000);
 
                         // Send confirmation message
-                        await Um4r719.sendMessage(Um4r719.user.id, {
-                            text: 'HORLA-POOKIE Session has been successfully generated!\n\nYour session is above. Dont forget to give us a follow🙏🙏 https://whatsapp.com/channel/0029VbBu7CaLtOjAOyp5kR1i.\n\nGoodluck 🎉\n'
+                        await Um4r719.sendMessage(Um4r719.user.id, { 
+                            text: 'HORLA-POOKIE Session has been successfully generated!\n\nYour session is above. Dont forget to give us a follow🙏🙏 https://whatsapp.com/channel/0029VbBu7CaLtOjAOyp5kR1i.\n\nGoodluck 🎉\n' 
                         });
+                        console.log("Sent confirmation message");
 
                         // Clean up session after use
-                        await delay(100);
+                        await delay(2000);
                         removeFile(dirs);
                         process.exit(0);
                     } catch (err) {
-                        console.error('Error sending session:', err);
+                        console.error('Error sending session:', err.message);
+                        console.error('Stack:', err.stack);
+                        if (!res.headersSent) {
+                            res.status(500).send({ error: 'Failed to send session: ' + err.message });
+                        }
+                        removeFile(dirs);
+                        process.exit(1);
                     }
                 } else if (connection === 'close') {
                     const statusCode = lastDisconnect?.error?.output?.statusCode;
