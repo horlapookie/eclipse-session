@@ -7,9 +7,8 @@
     "node": ">=20.0.0"
   },
   "scripts": {
-    "start": "pm2 start index.js --deep-monitoring --attach --name eclipse",
-    "stop": "pm2 stop eclipse",
-    "restart": "pm2 restart eclipse"
+    "start": "node index.js",
+    "dev": "node index.js"
   },
   "author": "horlapookie",
   "license": "GPL-3.0",

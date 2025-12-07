@@ -1,15 +1,20 @@
-const { makeid } = require('./gen-id');
-const express = require('express');
-const fs = require('fs');
-let router = express.Router();
-const pino = require("pino");
-const {
-    default: makeWASocket,
+import { makeid } from './gen-id.js';
+import express from 'express';
+import fs from 'fs';
+import pino from 'pino';
+import { fileURLToPath } from 'url';
+import path from 'path';
+import makeWASocket, {
     useMultiFileAuthState,
     delay,
     Browsers,
     makeCacheableSignalKeyStore
-} = require('@whiskeysockets/baileys');
+} from '@whiskeysockets/baileys';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+let router = express.Router();
 
 function removeFile(FilePath) {
     if (!fs.existsSync(FilePath)) return false;
@@ -23,9 +28,6 @@ router.get('/', async (req, res) => {
     async function GIFTED_MD_PAIR_CODE() {
         const { state, saveCreds } = await useMultiFileAuthState('./temp/' + id);
         try {
-            const browsers = ["Safari"];
-            const randomItem = browsers[Math.floor(Math.random() * browsers.length)];
-
             let sock = makeWASocket({
                 auth: {
                     creds: state.creds,
@@ -35,11 +37,12 @@ router.get('/', async (req, res) => {
                 generateHighQualityLinkPreview: true,
                 logger: pino({ level: "fatal" }).child({ level: "fatal" }),
                 syncFullHistory: false,
-                browser: Browsers.macOS(randomItem)
+                markOnlineOnConnect: false,
+                browser: Browsers.macOS('Chrome')
             });
 
             if (!sock.authState.creds.registered) {
-                await delay(1500);
+                await delay(2500);
                 num = num.replace(/[^0-9]/g, '');
                 const code = await sock.requestPairingCode(num);
                 if (!res.headersSent) {
@@ -121,4 +124,4 @@ router.get('/', async (req, res) => {
     return await GIFTED_MD_PAIR_CODE();
 });
 
-module.exports = router;
+export default router;
