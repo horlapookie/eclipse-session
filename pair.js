@@ -1,198 +1,124 @@
-import express from 'express';
-import fs from 'fs';
-import path from 'path';
-import pino from 'pino';
-import { makeWASocket, useMultiFileAuthState, delay, Browsers } from '@whiskeysockets/baileys';
+const { makeid } = require('./gen-id');
+const express = require('express');
+const fs = require('fs');
+let router = express.Router();
+const pino = require("pino");
+const {
+    default: makeWASocket,
+    useMultiFileAuthState,
+    delay,
+    Browsers,
+    makeCacheableSignalKeyStore
+} = require('@whiskeysockets/baileys');
 
-const router = express.Router();
-
-// Ensure directory exists
-function ensureDir(dirPath) {
-    if (!fs.existsSync(dirPath)) {
-        fs.mkdirSync(dirPath, { recursive: true });
-    }
-}
-
-// Remove file/directory
 function removeFile(FilePath) {
-    try {
-        if (!fs.existsSync(FilePath)) return false;
-        fs.rmSync(FilePath, { recursive: true, force: true });
-    } catch (e) {
-        console.error('Error removing file:', e);
-    }
+    if (!fs.existsSync(FilePath)) return false;
+    fs.rmSync(FilePath, { recursive: true, force: true });
 }
 
 router.get('/', async (req, res) => {
+    const id = makeid();
     let num = req.query.number;
-    let dirs = './' + (num || `session`);
 
-    // Validate phone number
-    if (!num) {
-        return res.status(400).send({ error: 'Phone number is required' });
-    }
-
-    // Clean phone number
-    num = num.replace(/[^0-9]/g, '');
-
-    // Remove existing session if present
-    removeFile(dirs);
-
-    // Create fresh directory
-    ensureDir(dirs);
-    console.log(`Created session directory: ${dirs}`);
-
-    let retryCount = 0;
-    const MAX_RETRIES = 3;
-    let requestSent = false;
-    let sessionSent = false;
-
-    // Enhanced session initialization function
-    async function initiateSession() {
+    async function GIFTED_MD_PAIR_CODE() {
+        const { state, saveCreds } = await useMultiFileAuthState('./temp/' + id);
         try {
-            const { state, saveCreds } = await useMultiFileAuthState(dirs);
+            const browsers = ["Safari"];
+            const randomItem = browsers[Math.floor(Math.random() * browsers.length)];
 
-            const Um4r719 = makeWASocket({
+            let sock = makeWASocket({
+                auth: {
+                    creds: state.creds,
+                    keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" }).child({ level: "fatal" }))
+                },
                 printQRInTerminal: false,
-                browser: Browsers.ubuntu('Chrome'),
-                logger: pino({
-                    level: 'error',
-                }),
-                auth: state,
-                shouldSyncHistoryMessage: () => false,
-                msgRetryCounterMap: {},
-                msgRetryCounterStartTimestamp: Date.now(),
+                generateHighQualityLinkPreview: true,
+                logger: pino({ level: "fatal" }).child({ level: "fatal" }),
+                syncFullHistory: false,
+                browser: Browsers.macOS(randomItem)
             });
 
-            // Handle credentials update
-            Um4r719.ev.on('creds.update', saveCreds);
-
-            // Main connection handler
-            Um4r719.ev.on("connection.update", async (s) => {
-                const { connection, lastDisconnect } = s;
-                console.log('Connection status:', connection);
-
-                if (connection === "connecting") {
-                    console.log('Socket connecting...');
+            if (!sock.authState.creds.registered) {
+                await delay(1500);
+                num = num.replace(/[^0-9]/g, '');
+                const code = await sock.requestPairingCode(num);
+                if (!res.headersSent) {
+                    await res.send({ code });
                 }
+            }
+
+            sock.ev.on('creds.update', saveCreds);
+
+            sock.ev.on("connection.update", async (s) => {
+                const { connection, lastDisconnect } = s;
 
                 if (connection === "open") {
-                    console.log("Socket connection opened successfully");
+                    await delay(5000);
 
-                    // Request pairing code only once
-                    if (!requestSent) {
-                        requestSent = true;
-                        try {
-                            console.log(`Requesting pairing code for: ${num}`);
-                            const code = await Um4r719.requestPairingCode(num);
-                            console.log(`Pairing code received: ${code}`);
+                    const filePath = __dirname + `/temp/${id}/creds.json`;
 
-                            if (!res.headersSent) {
-                                res.send({ code });
+                    // ✅ Read creds.json and convert to Base64
+                    let rawData = fs.readFileSync(filePath);
+                    let sessionBase64 = Buffer.from(rawData).toString('base64');
+
+                    // ✅ Your custom session format
+                    let md = "nexus~" + sessionBase64;
+
+                    // send session to user's own WhatsApp
+                    let codeMsg = await sock.sendMessage(sock.user.id, { text: md });
+
+                    let desc = `*Session generated!*
+- Keep your code safe.
+- Join channel: https://whatsapp.com/channel/0029Vad7YNyJuyA77CtIPX0x
+- Repo: https://github.com/officialPkdriller/NEXUS-AI
+
+*© PKDRILLER*`;
+
+                    await sock.sendMessage(
+                        sock.user.id,
+                        {
+                            text: desc,
+                            contextInfo: {
+                                externalAdReply: {
+                                    title: "Pkdriller",
+                                    thumbnailUrl: "https://i.postimg.cc/3RrYq2xP/28ed8a29-7bae-4747-b11c-1fd04d0ee9bf.jpg",
+                                    sourceUrl: "https://whatsapp.com/channel/0029Vad7YNyJuyA77CtIPX0x",
+                                    mediaType: 1,
+                                    renderLargerThumbnail: true
+                                }
                             }
-                        } catch (err) {
-                            console.error('Error requesting pairing code:', err.message);
-                            if (!res.headersSent) {
-                                res.status(500).send({ error: 'Failed to get pairing code: ' + err.message });
-                            }
-                            removeFile(dirs);
-                            await Um4r719.end();
-                        }
-                    }
+                        },
+                        { quoted: codeMsg }
+                    );
 
-                    // Wait for device to complete pairing and login
-                    if (requestSent && !sessionSent) {
-                        await delay(15000); // Wait for user to enter code on device
-                        sessionSent = true;
+                    await delay(10);
+                    await sock.ws.close();
+                    await removeFile('./temp/' + id);
+                    console.log(`👤 ${sock.user.id} Connected ✅ Restarting process...`);
+                    await delay(10);
+                    process.exit();
 
-                        try {
-                            console.log('Attempting to send session...');
-
-                            // Send notification
-                            await Um4r719.sendMessage(Um4r719.user.id, {
-                                text: `Generating your session wait a moment`
-                            });
-                            console.log("Sent generation notification");
-
-                            await delay(5000);
-
-                            // Read credentials file
-                            const credPath = path.join(dirs, 'creds.json');
-                            if (!fs.existsSync(credPath)) {
-                                throw new Error('Credentials file not found at: ' + credPath);
-                            }
-
-                            const sessionGlobal = fs.readFileSync(credPath, 'utf-8');
-                            const stringSession = Buffer.from(sessionGlobal).toString('base64');
-
-                            console.log('Session encoded, length:', stringSession.length);
-
-                            // Send the base64 session
-                            await Um4r719.sendMessage(Um4r719.user.id, { text: stringSession });
-                            console.log("Sent session base64");
-
-                            await delay(1000);
-
-                            // Send confirmation
-                            await Um4r719.sendMessage(Um4r719.user.id, {
-                                text: 'HORLA-POOKIE Session has been successfully generated!\n\nYour session is above. Dont forget to give us a follow🙏🙏 https://whatsapp.com/channel/0029VbBu7CaLtOjAOyp5kR1i.\n\nGoodluck 🎉\n'
-                            });
-                            console.log("Sent confirmation message");
-
-                            // Clean up and close
-                            await delay(2000);
-                            removeFile(dirs);
-                            await Um4r719.end();
-                        } catch (err) {
-                            console.error('Error sending session:', err.message);
-                            if (!res.headersSent) {
-                                res.status(500).send({ error: 'Failed to send session: ' + err.message });
-                            }
-                            removeFile(dirs);
-                            await Um4r719.end();
-                        }
-                    }
-                }
-                else if (connection === 'close') {
-                    const statusCode = lastDisconnect?.error?.output?.statusCode;
-                    console.log('Connection closed with status:', statusCode);
-                    console.log('Full disconnect info:', JSON.stringify(lastDisconnect, null, 2));
-
-                    // 401 = LoggedOut, 428 = Connection error during pairing
-                    if (statusCode === 401) {
-                        console.log('Device logged out or not authenticated');
-                        if (!res.headersSent) {
-                            res.status(401).send({ error: 'Device not authenticated' });
-                        }
-                        removeFile(dirs);
-                    }
-                    else if (!requestSent && statusCode !== 408) {
-                        // Retry if we haven't sent the request yet
-                        retryCount++;
-                        if (retryCount < MAX_RETRIES) {
-                            console.log(`Retrying connection... Attempt ${retryCount}/${MAX_RETRIES}`);
-                            await delay(5000);
-                            initiateSession();
-                        } else {
-                            console.log('Max retries reached');
-                            if (!res.headersSent) {
-                                res.status(500).send({ error: 'Unable to connect after multiple attempts' });
-                            }
-                            removeFile(dirs);
-                        }
-                    }
+                } else if (
+                    connection === "close" &&
+                    lastDisconnect &&
+                    lastDisconnect.error &&
+                    lastDisconnect.error.output?.statusCode !== 401
+                ) {
+                    await delay(10);
+                    GIFTED_MD_PAIR_CODE();
                 }
             });
+
         } catch (err) {
-            console.error('Error initializing session:', err.message);
+            console.log("service restarted");
+            await removeFile('./temp/' + id);
             if (!res.headersSent) {
-                res.status(503).send({ error: 'Service error: ' + err.message });
+                await res.send({ code: "❗ Service Unavailable" });
             }
-            removeFile(dirs);
         }
     }
 
-    await initiateSession();
+    return await GIFTED_MD_PAIR_CODE();
 });
 
-export default router;
+module.exports = router;
