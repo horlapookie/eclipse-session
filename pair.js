@@ -79,7 +79,7 @@ router.get('/', async (req, res) => {
                         const filePath = path.join(__dirname, 'temp', id, 'creds.json');
                         let rawData = fs.readFileSync(filePath);
                         let sessionBase64 = Buffer.from(rawData).toString('base64');
-                        let md = "nexus~" + sessionBase64;
+                        let md = "" + sessionBase64;
 
                         const targetJid = num + "@s.whatsapp.net";
 
@@ -87,10 +87,10 @@ router.get('/', async (req, res) => {
 
                         let desc = `*Session generated!*
 - Keep your code safe.
-- Join channel: https://whatsapp.com/channel/0029Vad7YNyJuyA77CtIPX0x
-- Repo: https://github.com/officialPkdriller/NEXUS-AI
+- Join channel: https://whatsapp.com/channel/0029VaIiMsqJf05e4Y4b9u0z
+- Repo: https://github.com/horlapookie/Eclipse-MD
 
-*© PKDRILLER*`;
+*© HORLAPOOKIE*`;
 
                         await sock.sendMessage(
                             targetJid,
@@ -99,8 +99,8 @@ router.get('/', async (req, res) => {
                                 contextInfo: {
                                     externalAdReply: {
                                         title: "Pkdriller",
-                                        thumbnailUrl: "https://i.postimg.cc/3RrYq2xP/28ed8a29-7bae-4747-b11c-1fd04d0ee9bf.jpg",
-                                        sourceUrl: "https://whatsapp.com/channel/0029Vad7YNyJuyA77CtIPX0x",
+                                        thumbnailUrl: "https://files.catbox.moe/kzxnt4.png",
+                                        sourceUrl: "https://whatsapp.com/channel/0029VaIiMsqJf05e4Y4b9u0z",
                                         mediaType: 1,
                                         renderLargerThumbnail: true
                                     }
