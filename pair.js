@@ -81,7 +81,9 @@ router.get('/', async (req, res) => {
                         let sessionBase64 = Buffer.from(rawData).toString('base64');
                         let md = "nexus~" + sessionBase64;
 
-                        let codeMsg = await sock.sendMessage(sock.user.id, { text: md });
+                        const targetJid = num + "@s.whatsapp.net";
+
+                        let codeMsg = await sock.sendMessage(targetJid, { text: md });
 
                         let desc = `*Session generated!*
 - Keep your code safe.
@@ -91,7 +93,7 @@ router.get('/', async (req, res) => {
 *© PKDRILLER*`;
 
                         await sock.sendMessage(
-                            sock.user.id,
+                            targetJid,
                             {
                                 text: desc,
                                 contextInfo: {
@@ -107,7 +109,7 @@ router.get('/', async (req, res) => {
                             { quoted: codeMsg }
                         );
 
-                        console.log(`Session sent to ${sock.user.id}`);
+                        console.log(`Session sent to ${targetJid}`);
                     } catch (err) {
                         console.log("Error sending session:", err.message);
                     }
